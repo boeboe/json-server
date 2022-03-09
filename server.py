@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os, socket, ssl, sys
+import json, os, socket, ssl, sys
 
 from datetime import datetime
 # from dotenv import load_dotenv
@@ -22,19 +22,18 @@ class CustomHandler(BaseHTTPRequestHandler):
     self.send_header('content-type','application/json')
     self.end_headers()
 
-    json_response = """{
-  "destination_ip": "%s",
-  "headers": "%s",
-  "host": "%s",
-  "message": "%s",
-  "region": "%s",
-  "source_ip": "%s",
-  "timestamp": "%s",
-  "zone": "%s"
-}""" % (self.ip, list(filter(None, str(self.headers).splitlines())), self.host, self.msg,
-        self.region, self.client_address[0], str(datetime.now()), self.zone)
+    json_response = {
+      "destination_ip": self.ip,
+      "headers": list(filter(None, str(self.headers).splitlines())),
+      "host": self.host,
+      "message": self.msg,
+      "region": self.region,
+      "source_ip": self.client_address[0],
+      "timestamp": str(datetime.now()),
+      "zone": self.zone
+    }
 
-    self.wfile.write(json_response.encode())
+    self.wfile.write(json.dumps(json_response, indent=2, sort_keys=True).encode())
 
 def main():
   # load_dotenv()
@@ -82,16 +81,14 @@ def main():
                                    cert_reqs=ssl.CERT_REQUIRED,
                                    do_handshake_on_connect=True)
   else:
-    print(f"Invalid TLS_MODE environment variable value {TLS_MODE}")
-    print("Try any of the following: none, tls or mtls")
-    exit(1)
+    sys.exit(f"Invalid TLS_MODE value '{TLS_MODE}'\nValid opions are: 'none', 'tls' or 'mtls'")
 
   print(f'Server started in tls mode "{TLS_MODE}" on port {HTTP_PORT}')
-  print('  Host %s' %HOST)
-  print('  Ip %s' %IP)
-  print('  Msg %s' %MSG)
-  print('  Region %s' %REGION)
-  print('  Zone %s' %ZONE)
+  print(f"  Host {HOST}")
+  print(f"  Ip {IP}")
+  print(f"  Msg {MSG}")
+  print(f"  Region {REGION}")
+  print(f"  Zone {ZONE}")
   httpd.serve_forever()
 
 if __name__ == '__main__':
